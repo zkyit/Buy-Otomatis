@@ -6,6 +6,10 @@ global.FILE_PATH = 'transaksi.json';
 global.GITHUB_TOKEN = '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';
 global.RAW_GITHUB_URL = `https://raw.githubusercontent.com/WhyyXdzz/database/refs/heads/main/transaksi.json`;
 global.GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}`;
+
+// Itzky Key
+global.itzky = ""
+
 /// Panel
 global.apikey = ""
 global.domain = ""
