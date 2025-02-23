@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiiStore Checkout</title>
+    <link href="https://unicons.iconscout.com/release/v4.0.0/css/line.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.2/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1c1c1c;
+            color: #fff;
+        }
+        .checkout-container {
+            padding: 20px;
+        }
+        .checkout-section {
+            background-color: #2c2c2e;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .checkout-section h3 {
+            margin-bottom: 10px;
+        }
+        .price-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .total-payment {
+            color: #ff4500;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .status-section {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+        }
+        .status-section div {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #444;
+        }
+        .status-span {
+            font-weight: bold;
+            font-size: 12px;
+        }
+        span {
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .pending {
+            background-color: #ffcc00;
+            color: #000;
+            padding: 3px 10px;
+            border-radius: 5px;
+        }
+        .unpaid {
+            background-color: #b22222;
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 5px;
+        }
+        .failed {
+            background-color: #ff4d4d;
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 5px;
+        }
+        .qr-code {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .qr-code img {
+            width: 200px;
+            height: 200px;
+        }
+        .qr-code.expired {
+            display: none;
+        }
+        .qr-code-buttons {
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+        .qr-code-buttons button {
+            background-color: #444;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            margin-left: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .qr-code-buttons button:hover {
+            background-color: #555;
+        }
+        .payment-guide {
+            background-color: #2c2c2e;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        .payment-guide h3 {
+            margin-bottom: 10px;
+        }
+        #countdown {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ff4d4d;
+        }
+        .succeeded {
+            background-color: #32cd32;
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 5px;
+        }
+        .success-check {
+            width: 200px;
+            height: 200px;
+            background-color: #32cd32;
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-check::before {
+            content: '✔';
+            color: #fff;
+            font-size: 100px;
+            position: absolute;
+        }
+
+
+    </style>
+</head>
+<body>
+
+    <%- include('./layout/navbar.ejs') %>
+
+    <div class="checkout-container">
+        <div class="checkout-section">
+            <div class="price-info">
+                <span>Harga</span>
+                <span>Rp. <%= transaction.originalAmount %></span>
+            </div>
+            <div class="price-info">
+                <span>Fee</span>
+                <span>Rp. <%= transaction.adminFee %></span>
+            </div>
+            <div class="price-info total-payment">
+                <span>Total Pembayaran</span>
+                <span>Rp. <%= transaction.amount %></span>
+            </div>
+        </div>
+
+        <div class="checkout-section">
+            <h3>Data Transaksi</h3>
+            <div class="status-section">
+                <div>
+                  <span class="status-span">Methode Pembayaran</span>
+                  <span>QRIS</span>
+                </div>
+                <div>
+                    <span class="status-span">Nomor Invoice</span>
+                    <span><%= transaction.id %></span>
+                </div>
+                <div>
+                    <span class="status-span">Status Transaksi</span>
+                    <span class="<%= transaction.status === 'pending' ? 'pending' : '' %>">
+                        <%= transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1) %>
+                    </span>
+                </div>
+                <div>
+                    <span class="status-span">Status Pembayaran</span>
+                    <span class="<%= transaction.status === 'succeeded' ? '' : 'unpaid' %>">
+                        <%= transaction.status === 'succeeded' ? 'Paid' : 'Unpaid' %>
+                    </span>
+                </div>
+                <div>
+                  <span class="status-span">Expired</span>
+                  <span id="countdown"></span>
+                </div>
+            </div>
+
+            <div class="qr-code" id="qrSection">
+                <h3>Pindai kode QR</h3>
+                <img id="qrImage" src="<%= transaction.qrImageUrl %>" alt="QR Code">
+                <div class="successGif" style="display: none">
+                <div class="qr-code-buttons">
+                    <button id="printButton">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M420 128.1V16H92v112.1A80.1 80.1 0 0 0 16 208v192h68v-32H48V208a48.054 48.054 0 0 1 48-48h320a48.054 48.054 0 0 1 48 48v160h-44v32h76V208a80.1 80.1 0 0 0-76-79.9m-32-.1H124V48h264Z"/><path fill="currentColor" d="M396 200h32v32h-32zm-280 64H76v32h40v200h272V296h40v-32zm240 200H148V296h208Z"/></svg>
+                    </button>
+                    <a id="downloadButton" download="<%= transaction.qrImageUrl %>">
+                        <button>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="M8 22h8c2.828 0 4.243 0 5.121-.878C22 20.242 22 18.829 22 16v-1c0-2.828 0-4.242-.879-5.121c-.768-.768-1.946-.865-4.121-.877m-10 0c-2.175.012-3.353.109-4.121.877C2 10.758 2 12.172 2 15v1c0 2.829 0 4.243.879 5.122c.3.3.662.497 1.121.627"/><path stroke-linejoin="round" d="M12 2v13m0 0l-3-3.5m3 3.5l3-3.5"/></g></svg>
+                        </button>
+                    </a>
+                </div>
+            </div>
+
+            <audio id="expiredSound">
+                <source src="/assets/audio/expired.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="payment-guide">
+                <h3>Panduan Pembayaran</h3>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const expirationTime = new Date("<%= transaction.expirationTime %>").getTime();
+        const countdownElement = document.getElementById('countdown');
+        const qrSection = document.getElementById('qrSection');
+        const qrImage = document.getElementById('qrImage');
+        const expiredSound = document.getElementById('expiredSound');
+        const transactionStatus = document.querySelector('.status-section div:nth-child(3) span:last-child');
+        const paymentStatus = document.querySelector('.status-section div:nth-child(4) span:last-child');
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const timeLeft = expirationTime - now;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                qrImage.style.display = 'none';
+                countdownElement.innerHTML = 'QR Code telah expired';
+                transactionStatus.innerHTML = 'Failed';
+                transactionStatus.classList.remove('pending');
+                transactionStatus.classList.add('failed');
+                paymentStatus.innerHTML = 'Unpaid';
+                paymentStatus.classList.remove('unpaid');
+                paymentStatus.classList.add('failed');
+                expiredSound.play();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'QR Code Expired',
+                    text: 'QR Code telah kedaluwarsa, silakan refresh untuk mencoba lagi.'
+                });
+                return;
+            }
+
+            const minutes = Math.floor(timeLeft / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+            countdownElement.innerHTML = `${minutes} menit ${seconds} detik`;
+        }
+
+        const countdownInterval = setInterval(updateCountdown, 1000);
+
+        document.getElementById('printButton').addEventListener('click', () => {
+            window.print();
+        });
+
+        const qrUrl = document.getElementById('qrImage').src;
+        document.getElementById('downloadButton').href = qrUrl;
+
+        const transactionId = '<%= transaction.id %>';
+        const checkStatusInterval = 10000;
+
+        async function checkPaymentStatus() {
+            try {
+                const response = await axios.get(`/api/check-status/${transactionId}`);
+                const status = response.data.status;
+                if (status === 'succeeded') {
+                    qrImage.style.display = 'none';
+                    transactionStatus.innerHTML = 'Succeeded';
+                    transactionStatus.classList.remove('pending', 'failed');
+                    transactionStatus.classList.add('succeeded');
+                    paymentStatus.innerHTML = 'Paid';
+                    paymentStatus.classList.remove('unpaid', 'failed');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pembayaran Berhasil',
+                        text: 'Pembayaran telah berhasil!',
+                    });
+                    try {
+                      const createPanelResponse = axios.post('/api/create-panel', {email: '<%= transaction.email %>',
+                        username: '<%= transaction.username %>',
+                        memory: '<%= transaction.memory %>',
+                        disk: '<%= transaction.disk %>',
+                        cpu: '<%= transaction.cpu %>'
+                      })
+                      if (createPanelResponse.status === 200) {
+                        Swal.fire({
+                          icon: 'success',
+                          title: 'Panel Dibuat',
+                          text: 'Akun dan server berhasil dibuat.',
+                        })
+                      }
+                    } catch (error) {
+                      Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal Membuat Panel',
+                        text: 'Terjadi kesalahan saat membuat panel.',
+                      });
+                    }
+                    clearInterval(polling);
+                }
+            } catch (error) {
+                console.error('Error checking payment status:', error);
+            }
+        }
+
+        const polling = setInterval(checkPaymentStatus, checkStatusInterval);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.2/dist/sweetalert2.all.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiiStore</title>
+    <link href="https://unicons.iconscout.com/release/v4.0.0/css/line.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1c1c1c;
+            color: #fff;
+        }
+        .container {
+            padding: 20px;
+        }
+        .section {
+            background-color: #2c2c2c;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .section-header .number {
+            background-color: #ff4500;
+            color: #fff;
+            padding: 10px;
+            border-radius: 50%;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        .section-header .title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 15px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #3c3c3c;
+            color: #fff;
+            outline: none;
+        }
+        .top-up-instant {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .top-up-instant .item {
+            background-color: #3c3c3c;
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            position: relative;
+            flex: 1 1 calc(50% - 20px);
+            box-sizing: border-box;
+            min-width: 220px;
+        }
+        .top-up-instant .item.selected {
+            border-color: #ff4500;
+        }
+        .top-up-instant .item .selected-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #ff4500;
+            font-size: 24px;
+            display: none;
+        }
+        .top-up-instant .item.selected .selected-icon {
+            display: block;
+        }
+        .checkout-btn {
+            background-color: #ff4500;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="section">
+            <div class="section-header">
+                <div class="number">1</div>
+                <div class="title">Silakan pilih paket</div>
+            </div>
+
+            <div class="top-up-instant">
+                <% products.forEach(function(product) { %>
+                    <div class="item" data-id="<%= product.id %>" data-size="<%= product.size %>" data-image="<%= product.image %>" data-price="<%= product.price %>" onclick="selectPlan(this)">
+                        <i class="uil uil-check-circle selected-icon"></i>
+                        <div class="name">Package <%= product.name %></div>
+                        <div class="details">Size: <%= product.size %><br>Image: <%= product.image %><br>Region: <%= product.region %></div>
+                        <div class="price">Price: Rp. <%= product.price %></div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="number">2</div>
+                <div class="title">Masukkan informasi</div>
+            </div>
+            <div class="input-group">
+                <label for="hostname">Hostname</label>
+                <input type="text" id="hostname" placeholder="Masukkan hostname" required>
+            </div>
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Masukkan email" required>
+            </div>
+        </div>
+
+        <div class="checkout-btn" id="checkoutBtn" onclick="initiateCheckout()">Checkout</div>
+    </div>
+
+<script>
+    let selectedPlan = null;
+
+    function selectPlan(element) {
+        selectedPlan = element;
+        const items = document.querySelectorAll('.top-up-instant .item');
+        items.forEach(item => item.classList.remove('selected'));
+        element.classList.add('selected');
+        document.getElementById('checkoutBtn').style.display = 'block';
+    }
+
+    async function initiateCheckout() {
+        if (!selectedPlan) return;
+        const price = selectedPlan.dataset.price;
+        const hostname = document.getElementById('hostname').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        if (!hostname || !email) {
+            Swal.fire('Error!', 'Harap isi semua data.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/trx/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ price, hostname, email })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                Swal.fire('Gagal!', data.error, 'error');
+                return;
+            }
+
+            if (data.transactionId) {
+                window.location.href = `/trx/invoice/${data.transactionId}`;
+            } else {
+                Swal.fire('Gagal!', 'Terjadi kesalahan saat checkout.', 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error!', 'Terjadi kesalahan saat melakukan checkout.', 'error');
+        }
+    }
+</script>
+</body>
+</html>
