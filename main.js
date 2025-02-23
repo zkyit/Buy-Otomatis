@@ -10,7 +10,8 @@ const path = require('path');
 const app = express();
 const { sendEmailVps, createVPS } = require('./system/cvps');
 app.use(express.json());
-app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs'); 
 app.use(express.static('public'));
 
 function getProducts() {
