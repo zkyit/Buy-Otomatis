@@ -158,9 +158,9 @@ app.post('/trx/checkout', async (req, res) => {
     const amountWithFee = product.price + adminFee;
 
     try {
-        const response = await axios.get(`https://apii.dev.ibzz-officiall.online/api/orkut/createpayment`, {
+        const response = await axios.get(`https://api.itzky.xyz/orkut/createqris`, {
             params: {
-                apikey: 'IbzzXdzz',
+                apikey: 'Sumbul',
                 amount: amountWithFee,
                 codeqr: codeqr
             }
