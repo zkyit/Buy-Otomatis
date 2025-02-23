@@ -13,15 +13,34 @@ app.use(express.json());
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
 
-
 function getProducts() {
-    const data = fs.readFileSync('produce.json');
-    return JSON.parse(data);
+    try {
+        const filePath = path.join(__dirname, 'produce.json');
+        if (!fs.existsSync(filePath)) {
+            console.error('Error: File produce.json tidak ditemukan.');
+            return [];
+        }
+        const data = fs.readFileSync(filePath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Gagal membaca produce.json:', error);
+        return [];
+    }
 }
 
 function listVps() {
-    const data = fs.readFileSync('vps.json');
-    return JSON.parse(data);
+    try {
+        const filePath = path.join(__dirname, 'vps.json');
+        if (!fs.existsSync(filePath)) {
+            console.error('Error: File vps.json tidak ditemukan.');
+            return [];
+        }
+        const data = fs.readFileSync(filePath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Gagal membaca vps.json:', error);
+        return [];
+    }
 }
 
 function generateRandomPassword() {
